@@ -91,11 +91,7 @@ class UserLocalStorageInterface(UserBaseInterface):
         Returns:
             list: A list of XAgentUser instances.
         """
-        users = []
-        for user_dict in self.user_list_cache:
-            users.append(XAgentUser(**user_dict))
-
-        return users
+        return [XAgentUser(**user_dict) for user_dict in self.user_list_cache]
 
     def get_user_dict_list(self):
         """
@@ -165,10 +161,10 @@ class UserLocalStorageInterface(UserBaseInterface):
 
         user_list = self.get_user_list()
 
-        for user in user_list:
-            if user.user_id == user_id and user.token == token and not user.deleted:
-                return True
-        return False
+        return any(
+            user.user_id == user_id and user.token == token and not user.deleted
+            for user in user_list
+        )
 
     def user_is_valid(self,
                       user_id: str | None = None,
@@ -189,7 +185,7 @@ class UserLocalStorageInterface(UserBaseInterface):
             return False
         user_list = self.get_user_list()
         for user in user_list:
-            if token == None:
+            if token is None:
                 if user.email == email and user.available and not user.deleted:
                     return True
             if user_id != None:
@@ -224,7 +220,7 @@ class UserLocalStorageInterface(UserBaseInterface):
         Returns:
             None
         """
-        for i, user_dict in enumerate(self.user_list_cache):
+        for user_dict in self.user_list_cache:
             if user.user_id == user_dict["user_id"]:
                 user_dict["available"] = user.available
 
@@ -310,8 +306,7 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
         Returns:
             list: A list of dictionaries that each contains an interaction's information.
         """
-        interactions  = copy.deepcopy(self.interaction_list_cache)
-        return interactions
+        return copy.deepcopy(self.interaction_list_cache)
 
     def get_interaction_list(self) -> list:
         """
@@ -320,8 +315,7 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
         Returns:
             list: A list of dictionaries that each contains an interaction's information.
         """
-        interactions  = copy.deepcopy(self.interaction_list_cache)
-        return interactions
+        return copy.deepcopy(self.interaction_list_cache)
 
     def get_interaction(self, interaction_id: str) -> InteractionBase | None:
         """
@@ -334,10 +328,14 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             `InteractionBase`: An interaction instance if there is a match, else `None`.
         """
         interaction_list = self.get_interaction_list()
-        for interaction in interaction_list:
-            if interaction["interaction_id"] == interaction_id:
-                return InteractionBase(**interaction)
-        return None
+        return next(
+            (
+                InteractionBase(**interaction)
+                for interaction in interaction_list
+                if interaction["interaction_id"] == interaction_id
+            ),
+            None,
+        )
 
     def create_interaction(self, base: InteractionBase):
         """
@@ -365,8 +363,7 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             None
         """
         if parameter is not None:
-            interaction_ids = [
-                k for k in self.interaction_parameter_cache.keys()]
+            interaction_ids = list(self.interaction_parameter_cache.keys())
             if parameter.interaction_id not in interaction_ids:
                 self.interaction_parameter_cache[parameter.interaction_id] = [
                     parameter.to_dict()]
@@ -388,7 +385,7 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
         Returns:
             list: Returns a list of InteractionParameter instances if found, else an empty list.
         """
-        interaction_ids = [k for k in self.interaction_parameter_cache.keys()]
+        interaction_ids = list(self.interaction_parameter_cache.keys())
         if interaction_id not in interaction_ids:
             return []
         else:
@@ -413,8 +410,8 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
         user_interaction_list = user_interaction_list[::-1]
         user_interaction_list = user_interaction_list[(
             page_num-1)*page_size:page_num*page_size]
-        
-        for i, interaction in enumerate(user_interaction_list):
+
+        for interaction in user_interaction_list:
             parameter = [{**p.args} if isinstance(p.args, dict) else p.args for p in self.get_parameter(interaction["interaction_id"])]
             interaction["parameters"] = parameter
             _data.append(interaction)
@@ -434,10 +431,14 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             `InteractionBase`: An interaction instance if there is a match, else `None`.
         """
         interaction_list = self.get_interaction_list()
-        for interaction in interaction_list:
-            if interaction["interaction_id"] == interaction_id:
-                return interaction
-        return None
+        return next(
+            (
+                interaction
+                for interaction in interaction_list
+                if interaction["interaction_id"] == interaction_id
+            ),
+            None,
+        )
 
     def interaction_is_exist(self, interaction_id: str) -> bool:
         """
@@ -450,10 +451,11 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             bool: True if the interaction exists, else False.
         """
         interaction_list = self.get_interaction_list()
-        for interaction in interaction_list:
-            if interaction["interaction_id"] == interaction_id and not interaction["is_deleted"]:
-                return True
-        return False
+        return any(
+            interaction["interaction_id"] == interaction_id
+            and not interaction["is_deleted"]
+            for interaction in interaction_list
+        )
 
     def update_interaction(self, base_data: dict):
         """
@@ -519,7 +521,7 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
         Returns:
             None
         """
-        interaction_ids = [k for k in self.interaction_parameter_cache.keys()]
+        interaction_ids = list(self.interaction_parameter_cache.keys())
         if interaction_id not in interaction_ids:
             self.interaction_parameter_cache[interaction_id] = [
                 parameter.to_dict()]
@@ -542,10 +544,12 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             bool: True if there is any running or waiting interaction, False otherwise.
         """
         interaction_list = self.get_interaction_list()
-        for interaction in interaction_list:
-            if interaction["user_id"] == user_id and interaction["status"] in ["running", "waiting"] and not interaction["is_deleted"]:
-                return True
-        return False
+        return any(
+            interaction["user_id"] == user_id
+            and interaction["status"] in ["running", "waiting"]
+            and not interaction["is_deleted"]
+            for interaction in interaction_list
+        )
     
     def delete_interaction(self, interaction_id: str):
         """
@@ -578,7 +582,11 @@ class InteractionLocalStorageInterface(InteractionBaseInterface):
             `InteractionBase`: An interaction instance if there is a match, else `None`.
         """
         interaction_list = self.get_interaction_list()
-        for interaction in interaction_list:
-            if interaction["interaction_id"] == interaction_id:
-                return InteractionBase(**interaction)
-        return None
+        return next(
+            (
+                InteractionBase(**interaction)
+                for interaction in interaction_list
+                if interaction["interaction_id"] == interaction_id
+            ),
+            None,
+        )

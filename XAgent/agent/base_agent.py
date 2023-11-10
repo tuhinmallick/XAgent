@@ -39,9 +39,7 @@ class BaseAgent(metaclass=abc.ABCMeta):
             prompt_messages (List): Initial set of messages user gives to interact with the agent.
         """
         logger.typewriter_log(
-            f"Constructing an Agent:",
-            Fore.YELLOW,
-            self.__class__.__name__,
+            "Constructing an Agent:", Fore.YELLOW, self.__class__.__name__
         )
         self.config = config
         self.prompt_messages = prompt_messages
@@ -104,39 +102,47 @@ class BaseAgent(metaclass=abc.ABCMeta):
         match CONFIG.default_request_type:
             case 'openai':
                 if arguments is not None:
-                    if functions is None or len(functions) == 0:
-                        functions = [{
-                            'name':'reasoning',
-                            'parameters':arguments
-                        }]
-                        function_call = {'name':'reasoning'}
+                    if functions is None or not functions:
+                        functions = [
+                            {'name': 'reasoning', 'parameters': arguments}
+                        ]
+                        function_call = {'name': 'reasoning'}
                     elif len(functions) == 1:
-                        for k,v in arguments['properties'].items():
+                        for k, v in arguments['properties'].items():
                             functions[0]['parameters']['properties'][k] = v
                             if k in arguments['required']:
                                 functions[0]['parameters']['required'].append(k)
                     else:
-                        raise NotImplementedError("Not implemented for multiple functions with arguments")
-                    
+                        raise NotImplementedError(
+                            "Not implemented for multiple functions with arguments"
+                        )
+
                 response = objgenerator.chatcompletion(
                     messages=messages,
                     functions=functions,
                     function_call=function_call,
                     stop=stop,
-                    *args,**kwargs)
-                
+                    *args,
+                    **kwargs,
+                )
+
                 message = {}
-                function_call_args:dict = json5.loads(response["choices"][0]["message"]["function_call"]['arguments'])
-                
+                function_call_args: dict = json5.loads(
+                    response["choices"][0]["message"]["function_call"]['arguments']
+                )
+
                 if arguments is not None:
                     message['arguments'] = {
                         k: function_call_args.pop(k)
-                        for k in arguments['properties'].keys() if k in function_call_args
+                        for k in arguments['properties'].keys()
+                        if k in function_call_args
                     }
-                if len(function_call_args) > 0:
+                if function_call_args:
                     message['function_call'] = {
-                        'name': response['choices'][0]['message']['function_call']['name'],
-                        'arguments': function_call_args
+                        'name': response['choices'][0]['message']['function_call'][
+                            'name'
+                        ],
+                        'arguments': function_call_args,
                     }
 
             case 'xagent':
@@ -146,10 +152,14 @@ class BaseAgent(metaclass=abc.ABCMeta):
                     functions=functions,
                     function_call=function_call,
                     stop=stop,
-                    *args,**kwargs)
+                    *args,
+                    **kwargs,
+                )
                 message = json5.loads(response["choices"][0]["message"]['content'])
             case _:
-                raise NotImplementedError(f"Request type {CONFIG.default_request_type} not implemented")
-            
+                raise NotImplementedError(
+                    f"Request type {CONFIG.default_request_type} not implemented"
+                )
+
         tokens = response["usage"]
         return message, tokens

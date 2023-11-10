@@ -14,7 +14,7 @@ class BaseSearchMethod:
     def __init__(self):
         """Initializes the search method instance and logs its creation."""
         logger.typewriter_log(
-            f"Constructing a searching method:",
+            "Constructing a searching method:",
             Fore.YELLOW,
             self.__class__.__name__,
         )

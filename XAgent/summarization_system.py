@@ -169,9 +169,7 @@ class SummarizationTrieTree:
         """
         '''
 
-        message_list = [Message("system",system_prompt )]
-
-        return message_list
+        return [Message("system",system_prompt )]
 
 
     def generate_summary(self, message_list, recursive_mode=True):

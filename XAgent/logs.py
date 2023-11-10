@@ -160,9 +160,7 @@ class Logger(metaclass=Singleton):
         if message:
             if isinstance(message, list):
                 message = " ".join(message)
-        self.logger.log(
-            level, message, extra={"title": str(title), "color": str(title_color)}
-        )
+        self.logger.log(level, message, extra={"title": title, "color": title_color})
 
     def set_level(self, level):
         self.logger.setLevel(level)
@@ -263,7 +261,7 @@ def remove_color_codes(s: str) -> str:
         try:
             s = json.dumps(s)
         except:
-            s = str(s)
+            s = s
     ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
     return ansi_escape.sub("", s)
 
@@ -275,26 +273,18 @@ def print_task_save_items(
     item: TaskSaveItem,
 ) -> None:
 
+    logger.typewriter_log("Task Name:", Fore.YELLOW, f"{item.name}")
+    logger.typewriter_log("Task Goal:", Fore.YELLOW, f"{item.goal}")
     logger.typewriter_log(
-        f"Task Name:", Fore.YELLOW, f"{item.name}"
-    )
-    logger.typewriter_log(
-        f"Task Goal:", Fore.YELLOW, f"{item.goal}"
-    )
-    logger.typewriter_log(
-        f"Task Prior-Criticism:", Fore.YELLOW, f"{item.prior_plan_criticism}"
+        "Task Prior-Criticism:", Fore.YELLOW, f"{item.prior_plan_criticism}"
     )
     if len(item.posterior_plan_reflection) > 0:
-        logger.typewriter_log(
-            f"Task Posterior-Criticism:", Fore.YELLOW
-        )
+        logger.typewriter_log("Task Posterior-Criticism:", Fore.YELLOW)
         for line in item.posterior_plan_reflection:
             line = line.lstrip("- ")
             logger.typewriter_log("- ", Fore.GREEN, line.strip())
     if len(item.milestones) > 0:
-        logger.typewriter_log(
-            f"Task Milestones:", Fore.YELLOW,
-        )
+        logger.typewriter_log("Task Milestones:", Fore.YELLOW)
         for line in item.milestones:
             line = line.lstrip("- ")
             logger.typewriter_log("- ", Fore.GREEN, line.strip())
@@ -306,19 +296,15 @@ def print_task_save_items(
     #         line = f"{line['tool_name']}: {line['reason']}".lstrip("- ")
     #         logger.typewriter_log("- ", Fore.GREEN, line.strip())
     if len(item.tool_reflection) > 0:
-        logger.typewriter_log(
-            f"Posterior Tool Reflections:", Fore.YELLOW,
-        )
+        logger.typewriter_log("Posterior Tool Reflections:", Fore.YELLOW)
         for line in item.tool_reflection:
             line = f"{line['target_tool_name']}: {line['reflection']}".lstrip("- ")
             logger.typewriter_log("- ", Fore.GREEN, line.strip())
 
-    logger.typewriter_log(
-        f"Task Status:", Fore.YELLOW, f"{item.status.name}"
-    )
+    logger.typewriter_log("Task Status:", Fore.YELLOW, f"{item.status.name}")
     if item.action_list_summary != "":
         logger.typewriter_log(
-            f"Action Summary:", Fore.YELLOW, f"{item.action_list_summary}"
+            "Action Summary:", Fore.YELLOW, f"{item.action_list_summary}"
         )
 
 def print_assistant_thoughts(
@@ -339,12 +325,10 @@ def print_assistant_thoughts(
         assistant_thoughts_plan = assistant_thoughts.get("plan")
         assistant_thoughts_criticism = assistant_thoughts.get("criticism")
     if assistant_thoughts_text is not None and assistant_thoughts_text != "":
-        logger.typewriter_log(
-            f"THOUGHTS:", Fore.YELLOW, f"{assistant_thoughts_text}"
-        )
+        logger.typewriter_log("THOUGHTS:", Fore.YELLOW, f"{assistant_thoughts_text}")
     if assistant_thoughts_reasoning is not None and assistant_thoughts_reasoning != "":
         logger.typewriter_log("REASONING:", Fore.YELLOW, f"{assistant_thoughts_reasoning}")
-        
+
     if assistant_thoughts_plan is not None and len(assistant_thoughts_plan) > 0:
         logger.typewriter_log("PLAN:", Fore.YELLOW, "")
         # If it's a list, join it into a string
@@ -358,7 +342,7 @@ def print_assistant_thoughts(
         for line in lines:
             line = line.lstrip("- ")
             logger.typewriter_log("- ", Fore.GREEN, line.strip())
-            
+
     if assistant_thoughts_criticism is not None and assistant_thoughts_criticism != "":
         logger.typewriter_log("CRITICISM:", Fore.YELLOW, f"{assistant_thoughts_criticism}")
     return {

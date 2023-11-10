@@ -50,7 +50,7 @@ class XAgentServer:
         from XAgent.workflow.base_query import AutoGPTQuery
         from XAgent.workflow.task_handler import TaskHandler
         from XAgent.workflow.working_memory import WorkingMemoryAgent
-       
+
         config.reload()
 
         args = interaction.parameter.args
@@ -61,7 +61,7 @@ class XAgentServer:
             if not os.path.exists(interaction.base.recorder_root_dir):
                 raise Exception(
                     f"recorder_root_dir {interaction.base.recorder_root_dir} not exists")
-            
+
             # Load the recorder from disk and get the query
             recorder.load_from_disk(interaction.base.recorder_root_dir)
             query = recorder.get_query()
@@ -75,9 +75,9 @@ class XAgentServer:
                 plan=args.get('plan', [
                 ]),
             )
-       
+
             self.logger.info(f"server is running, the start query is {args.get('goal', '')}")
-        
+
         # Register config and query to the recorder
         recorder.regist_query(query)
         recorder.regist_config(config)
@@ -129,9 +129,9 @@ class XAgentServer:
             function_list=all_functions,
             tool_functions_description_list=tool_functions_description_list,
         )
-        
+
         try:
-            self.logger.info(f"Start outer loop async")
+            self.logger.info("Start outer loop async")
             await task_handler.outer_loop_async()
         except Exception as e:
             self.logger.info(traceback.format_exc())

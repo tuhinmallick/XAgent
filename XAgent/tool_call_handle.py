@@ -27,9 +27,11 @@ def is_wrapped_response(obj: dict) -> bool:
     Returns:
         bool: True if the response object is wrapped, False otherwise.
     """
-    if 'type' in obj and obj['type'] in ['simple', 'composite', 'binary'] and 'data' in obj:
-        return True
-    return False
+    return (
+        'type' in obj
+        and obj['type'] in ['simple', 'composite', 'binary']
+        and 'data' in obj
+    )
 
 def unwrap_tool_response(obj):
     """
@@ -42,24 +44,23 @@ def unwrap_tool_response(obj):
         The unwrapped tool response object.
     """
     if isinstance(obj, dict):
-        if is_wrapped_response(obj):
-            match obj['type']:
-                case 'simple':
-                    return obj['data']
-                case 'binary':
-                    name = obj.get('name', uuid.uuid4().hex)
-                    if obj['media_type'] == 'image/png' and not str(name).endswith('.png'):
-                        name += '.png'
-                    with open(os.path.join('local_workspace', name), 'wb') as f:
-                        f.write(base64.b64decode(obj['data']))
-                    return {
-                        'media_type': obj['media_type'],
-                        'file_name': name
-                    }
-                case 'composite':
-                    return [unwrap_tool_response(o) for o in obj['data']]
-        else:
+        if not is_wrapped_response(obj):
             return obj
+        match obj['type']:
+            case 'simple':
+                return obj['data']
+            case 'binary':
+                name = obj.get('name', uuid.uuid4().hex)
+                if obj['media_type'] == 'image/png' and not str(name).endswith('.png'):
+                    name += '.png'
+                with open(os.path.join('local_workspace', name), 'wb') as f:
+                    f.write(base64.b64decode(obj['data']))
+                return {
+                    'media_type': obj['media_type'],
+                    'file_name': name
+                }
+            case 'composite':
+                return [unwrap_tool_response(o) for o in obj['data']]
     elif isinstance(obj, (str, int, float, bool, list)):
         return obj
     elif obj is None:
@@ -327,7 +328,7 @@ class ToolServerInterface():
         if CONFIG['experiment']['redo_action'] or cache_output is None:
             response = requests.post(url, json=payload, cookies=self.cookies)
             response_status_code = response.status_code
-            if response.status_code == 200 or response.status_code == 450:
+            if response.status_code in {200, 450}:
                 command_result = response.json()
                 command_result = unwrap_tool_response(command_result)
             else:
@@ -356,7 +357,7 @@ class ToolServerInterface():
             tool_output_status_code = ToolCallStatusCode.TOOL_CALL_FAILED
         elif response_status_code == 503:
             tool_output_status_code = ToolCallStatusCode.SERVER_ERROR
-            raise Exception("Server Error: "+ command_result)
+            raise Exception(f"Server Error: {command_result}")
         else:
             tool_output_status_code = ToolCallStatusCode.OTHER_ERROR
 
@@ -391,31 +392,31 @@ class FunctionHandler():
             arguments: The arguments of the task submission.
         """
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= SUBTASK SUBMITTED -=-=-=-=-=-=-=",
-            Fore.YELLOW,
-            "",
+            "-=-=-=-=-=-=-= SUBTASK SUBMITTED -=-=-=-=-=-=-=", Fore.YELLOW, ""
         )
         logger.typewriter_log(
-            f"submit_type:", Fore.YELLOW, f"{arguments['submit_type']}"
+            "submit_type:", Fore.YELLOW, f"{arguments['submit_type']}"
         )
         logger.typewriter_log(
-            f"success:", Fore.YELLOW, f"{arguments['result']['success']}"
+            "success:", Fore.YELLOW, f"{arguments['result']['success']}"
         )
         logger.typewriter_log(
-            f"conclusion:", Fore.YELLOW, f"{arguments['result']['conclusion']}"
+            "conclusion:", Fore.YELLOW, f"{arguments['result']['conclusion']}"
         )
         if "milestones" in arguments["result"].keys():
-            logger.typewriter_log(
-                f"milestones:", Fore.YELLOW
-            )
+            logger.typewriter_log("milestones:", Fore.YELLOW)
             for milestone in arguments["result"]["milestones"]:
                 line = milestone.lstrip("- ")
                 logger.typewriter_log("- ", Fore.GREEN, line.strip())
         logger.typewriter_log(
-            f"need_for_plan_refine:", Fore.YELLOW, f"{arguments['suggestions_for_latter_subtasks_plan']['need_for_plan_refine']}"
+            "need_for_plan_refine:",
+            Fore.YELLOW,
+            f"{arguments['suggestions_for_latter_subtasks_plan']['need_for_plan_refine']}",
         )
         logger.typewriter_log(
-            f"plan_suggestions:", Fore.YELLOW, f"{arguments['suggestions_for_latter_subtasks_plan']['reason']}"
+            "plan_suggestions:",
+            Fore.YELLOW,
+            f"{arguments['suggestions_for_latter_subtasks_plan']['reason']}",
         )
 
     def change_subtask_handle_function_enum(self, function_name_list: List[str]):
@@ -498,16 +499,19 @@ class FunctionHandler():
             result['useful_hyperlinks']  = result['useful_hyperlinks'][:3]
         if command['name'] == 'WebEnv_search_and_browse':
             with ThreadPoolExecutor(max_workers=len(result)) as pool:
-                f = []
-                for ret in result:
-                    f.append(pool.submit(function_manager, 'parse_web_text', webpage=ret['page'][:8096], prompt=command['arguments']['goals_to_browse']))
+                f = [
+                    pool.submit(
+                        function_manager,
+                        'parse_web_text',
+                        webpage=ret['page'][:8096],
+                        prompt=command['arguments']['goals_to_browse'],
+                    )
+                    for ret in result
+                ]
                 for ret, thd in zip(result, f):
                     ret['page'] = thd.result()
                     ret['page']['useful_hyperlinks'] = ret['page']['useful_hyperlinks'][:3]
 
-        if isinstance(result, str) and len(result) > 2000:
-            # need to summarize
-            pass
         return result
 
     def handle_tool_call(self, node: ToolNode, task_handler):
@@ -627,13 +631,15 @@ class FunctionHandler():
             The tool output status code.
             The result.
         """
-        plan_refine = False
         if arguments["result"]["success"]:
             tool_output_status_code = ToolCallStatusCode.SUBMIT_AS_SUCCESS
         else:
             tool_output_status_code = ToolCallStatusCode.SUBMIT_AS_FAILED
-        if arguments["suggestions_for_latter_subtasks_plan"]["need_for_plan_refine"]:
-            plan_refine = True
+        plan_refine = bool(
+            arguments["suggestions_for_latter_subtasks_plan"][
+                "need_for_plan_refine"
+            ]
+        )
         answer = {
             "content": f"you have successfully submit the subtask as {arguments['submit_type']}"
         }

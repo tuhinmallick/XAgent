@@ -33,9 +33,7 @@ def parse_args():
     parser.add_argument("--max_retry_times", type=int,)
     parser.add_argument("--config_file",type=str,default=os.getenv('CONFIG_FILE', 'assets/config.yml'))
 
-    args = parser.parse_args()
-
-    return args
+    return parser.parse_args()
 
 
 if __name__ == '__main__':

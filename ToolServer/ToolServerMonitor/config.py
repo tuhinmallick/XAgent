@@ -22,7 +22,7 @@ class ManagerConfig:
         """
         self.cfg: Dict = yaml.load(open(config_file_path, "r", encoding="utf-8").read(), Loader=yaml.FullLoader)
 
-        for k in os.environ.keys():
+        for k in os.environ:
             if k in self.cfg:
                 self.cfg[k] = os.environ[k]  # overwrite the config with environment variables
 

@@ -13,17 +13,13 @@ from config import CONFIG
 
 logger = logging.getLogger(CONFIG['logger'])
 
-def get_func_name(func:Callable,env:BaseEnv=None)->str:
+def get_func_name(func:Callable,env:BaseEnv=None) -> str:
     if env is None or not hasattr(env,'env_labels'):
-        if hasattr(func,'tool_labels'):
-            return func.tool_labels.name
-        else:
-            return func.__name__
+        return func.tool_labels.name if hasattr(func,'tool_labels') else func.__name__
+    if hasattr(func,'tool_labels'):
+        return f'{env.env_labels.name}_{func.tool_labels.name}'
     else:
-        if hasattr(func,'tool_labels'):
-            return env.env_labels.name + '_' + func.tool_labels.name
-        else:
-            return env.env_labels.name + '_' + func.__name__
+        return f'{env.env_labels.name}_{func.__name__}'
 
 
 class ToolRegister:
@@ -106,29 +102,35 @@ class ToolRegister:
             
         return None
 
-    def register_tool(self,tool_name:str,code:str)->str:
+    def register_tool(self,tool_name:str,code:str) -> str:
         try:
             exec(code,self.tool_creation_context)
         except Exception as e:
             error_report =  traceback.format_exc()
             logger.error(error_report)
-            raise ToolRegisterError(f'Failed to execute new tool code: {e}\n\n' + error_report,tool_name=tool_name)
-        
+            raise ToolRegisterError(
+                f'Failed to execute new tool code: {e}\n\n{error_report}',
+                tool_name=tool_name,
+            )
+
         try:
             tool_func = eval(tool_name,self.tool_creation_context)
         except:
-            raise ToolRegisterError(f'Failed to find tool, please verify the tool_name!',tool_name=tool_name)
-        
+            raise ToolRegisterError(
+                'Failed to find tool, please verify the tool_name!',
+                tool_name=tool_name,
+            )
+
         tool_func = self.check_and_register(tool_func)
         if tool_func is None:
             raise ToolRegisterError(f'Tool: {tool_name} has no labels or replicated! Ensuring wrap the tool with `@toolwrapper()`.',tool_name=tool_name)
-        
+
         # write the tool into file under extensions/tools
         code = '\n'.join(self.tool_creation_context_load_code) +'\n# Tool Creation Context Load Ended.\n'+ code
         tool_file = f'extensions/tools/{tool_name}.py'
         with open(tool_file,'w') as f:
             f.write(code)
-        
+
         return self.get_tool_dict(tool_name)
     
     def dynamic_extension_load(self,extension:str)->bool:
@@ -160,16 +162,16 @@ class ToolRegister:
     def get_all_envs(self)->list[dict]:
         return [self.envs[env_name].env_labels.dict()  for env_name in self.envs]
     
-    def get_all_tools(self,include_invisible=False)->list[str]:
+    def get_all_tools(self,include_invisible=False) -> list[str]:
         if include_invisible:
-            return [tool_name  for tool_name in self.tools]
+            return list(self.tools)
         else:
             return [tool_name  for tool_name in self.tools if self.tools[tool_name].tool_labels.visible]
     
     def get_all_tools_dict(self,include_invisible=False)->list[dict]:
         return [self.tools[tool_name].tool_labels.dict(name_overwrite=tool_name)  for tool_name in self.get_all_tools(include_invisible)]
     
-    def __getitem__(self, key)->Callable[..., Any]:
+    def __getitem__(self, key) -> Callable[..., Any]:
         # two stage index, first find env, then find tool
         if isinstance(key,str):
             if key not in self.tools:
@@ -197,8 +199,7 @@ class ToolRegister:
                 raise EnvNotFound(env_name=env_name)
             env = self.envs[env_name]
             if tool_name not in env.env_labels.subtools_labels:
-                raise ToolNotFound(tool_name=env_name+'_'+tool_name)
+                raise ToolNotFound(tool_name=f'{env_name}_{tool_name}')
             else:
-                func = getattr(env,env.env_labels.subtools_labels[tool_name].method.__name__)
-                return func
+                return getattr(env,env.env_labels.subtools_labels[tool_name].method.__name__)
         raise NotImplementedError(f'Key {key} is not valid!')

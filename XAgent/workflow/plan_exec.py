@@ -28,8 +28,7 @@ def plan_function_output_parser(function_output_item: dict) -> Plan:
     """
     subtask_node = TaskSaveItem()
     subtask_node.load_from_json(function_output_item=function_output_item)
-    subplan = Plan(subtask_node)
-    return subplan
+    return Plan(subtask_node)
 
 class PlanRefineChain():
     """Represents a chain of plan refinements.
@@ -99,13 +98,16 @@ class PlanRefineChain():
             output_list.append(operation_message)
         if len(self.plans) > 1:
             if flag_changed:
-                if CONFIG.enable_summary:
-                    new_message = summarize_plan(self.plans[-1].to_json())
-                else:
-                    new_message = json.dumps(self.plans[-1].to_json(), indent=2, ensure_ascii=False)
+                new_message = (
+                    summarize_plan(self.plans[-1].to_json())
+                    if CONFIG.enable_summary
+                    else json.dumps(
+                        self.plans[-1].to_json(), indent=2, ensure_ascii=False
+                    )
+                )
                 output_list.append(Message("user", f"""The total plan changed to follows:\n'''\n{new_message}\n'''\n\n"""))
             else:
-                output_list.append(Message("user", f"The total plan stay unchanged"))
+                output_list.append(Message("user", "The total plan stay unchanged"))
         return output_list
 
 class PlanAgent():
@@ -149,9 +151,7 @@ class PlanAgent():
         This method generates the initial plan by calling the plan generation agent.
         """
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= GENERATE INITIAL_PLAN -=-=-=-=-=-=-=",
-            Fore.GREEN,
-            "",
+            "-=-=-=-=-=-=-= GENERATE INITIAL_PLAN -=-=-=-=-=-=-=", Fore.GREEN, ""
         )
 
         split_functions = deepcopy(function_manager.get_function_schema('subtask_split_operation'))
@@ -176,7 +176,7 @@ class PlanAgent():
             arguments=deepcopy(function_manager.get_function_schema('simple_thought')['parameters']),
             functions=[split_functions], 
         )
-        
+
         subtasks = json5.loads(new_message["function_call"]["arguments"])
 
         for subtask_item in subtasks["subtasks"]:
@@ -189,7 +189,7 @@ class PlanAgent():
         This method iteratively refines the plan based on the memory system.
         """
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= ITERATIVELY REFINE PLAN BASED ON MEMORY SYSTEM -=-=-=-=-=-=-=",
+            "-=-=-=-=-=-=-= ITERATIVELY REFINE PLAN BASED ON MEMORY SYSTEM -=-=-=-=-=-=-=",
             Fore.BLUE,
         )
         print("Not Implemented, skip")
@@ -213,7 +213,7 @@ class PlanAgent():
             now_dealing_task (Plan): The task that is currently being dealt with.
         """
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= ITERATIVELY REFINE PLAN BASED ON TASK AGENT SUGGESTIONS -=-=-=-=-=-=-=",
+            "-=-=-=-=-=-=-= ITERATIVELY REFINE PLAN BASED ON TASK AGENT SUGGESTIONS -=-=-=-=-=-=-=",
             Fore.BLUE,
         )
 
@@ -234,21 +234,21 @@ class PlanAgent():
             refine_node_message = ""
         workspace_files = str(toolserver_interface.execute_command_client("FileSystemEnv_print_filesys_struture", {"return_root":True}))
         workspace_files,length = clip_text(workspace_files,1000,clip_end=True)
-                
+
         while modify_steps < max_step:
 
             logger.typewriter_log(
-                f"-=-=-=-=-=-=-= Continually refining planning (still in the loop)-=-=-=-=-=-=-=",
+                "-=-=-=-=-=-=-= Continually refining planning (still in the loop)-=-=-=-=-=-=-=",
                 Fore.GREEN,
             )
 
             subtask_id = now_dealing_task.get_subtask_id(to_str=True)
             flag_changed = False
-            
+
             additional_message_list = self.refine_chains[-1].parse_to_message_list(flag_changed)
 
             functions=[deepcopy(function_manager.get_function_schema('subtask_operations'))]
-            
+
             new_message , _ = agent.parse(
                 placeholders={
                     "system": {
@@ -292,7 +292,7 @@ class PlanAgent():
                 function_output = json.dumps({
                     "error": f"Operation {function_input['operation']} not found. Nothing happens"
                 })
-            
+
             if "error" not in function_output:
                 flag_changed = True
 
@@ -312,7 +312,10 @@ class PlanAgent():
                 "PLAN MODIFY STATUS CODE: ", Fore.YELLOW, f"{color}{output_status_code.name}{Style.RESET_ALL}"
             )
 
-            if output_status_code == PlanOperationStatusCode.PLAN_REFINE_EXIT or output_status_code == PlanOperationStatusCode.MODIFY_SUCCESS:
+            if output_status_code in [
+                PlanOperationStatusCode.PLAN_REFINE_EXIT,
+                PlanOperationStatusCode.MODIFY_SUCCESS,
+            ]:
                 return
 
             modify_steps += 1
@@ -468,16 +471,23 @@ class PlanAgent():
                 break
         if former_subtask is None:
             return json.dumps({"error": f"former_subtask_id '{former_subtask_id}' not found, should in {all_subtask_ids}. Nothing happended",}), PlanOperationStatusCode.TARGET_SUBTASK_NOT_FOUND
-        
+
         former_subtask_id_list = former_subtask.get_subtask_id_list()
         now_dealing_task_id_list = now_dealing_task.get_subtask_id_list()
-        
+
         if former_subtask.get_depth() <= 1:
-            return json.dumps({"error": f"You are not allowed to add a subtask at root level. Nothing happended",}), PlanOperationStatusCode.TARGET_SUBTASK_NOT_FOUND
-        
+            return (
+                json.dumps(
+                    {
+                        "error": "You are not allowed to add a subtask at root level. Nothing happended"
+                    }
+                ),
+                PlanOperationStatusCode.TARGET_SUBTASK_NOT_FOUND,
+            )
+
         if len(former_subtask.father.children) + len(function_input["subtasks"]) > self.config.max_plan_tree_width: # fixs bugs here: the length calculation is incorrect
             return json.dumps({"error": f"The plan tree has a max width of {self.config.max_plan_tree_width}. '{former_subtask.data.name}' already has a width of {len(former_subtask.children)}. Nothing happended"}), PlanOperationStatusCode.OTHER_ERROR
-            
+
         for i in range(min(len(former_subtask_id_list), len(now_dealing_task_id_list))):
             if former_subtask_id_list[i]<now_dealing_task_id_list[i]:
                 return json.dumps({"error": f"You can only add the subtask plans after than now_dealing task, e.g. 'former_subtask_id >= {now_dealing_task.get_subtask_id(to_str=True)}'. Nothing happended",}), PlanOperationStatusCode.MODIFY_FORMER_PLAN
@@ -486,12 +496,19 @@ class PlanAgent():
 
         subtask = former_subtask
         if subtask.father is None:
-            return json.dumps({"error":f"Currently not support adding a subtask at root level!"}), PlanOperationStatusCode.MODIFY_FORMER_PLAN
+            return (
+                json.dumps(
+                    {
+                        "error": "Currently not support adding a subtask at root level!"
+                    }
+                ),
+                PlanOperationStatusCode.MODIFY_FORMER_PLAN,
+            )
         # assert subtask.father != None
         index = subtask.father.children.index(subtask)
 
         for new_subplan in new_subplans:
             new_subplan.father = subtask.father
         subtask.father.children[index+1:index+1] = new_subplans
-        
+
         return json.dumps({"success": f"A new subtask has been added after '{former_subtask_id}'",}), PlanOperationStatusCode.MODIFY_SUCCESS

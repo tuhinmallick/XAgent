@@ -135,7 +135,7 @@ class UserDBInterface(UserBaseInterface):
         if email == "":
             return False
         user = self.db.query(User).filter(User.user_id == user_id, User.token == token, User.deleted == False).first()
-        if token == None:
+        if token is None:
             if user.email == email and user.available:
                 return True
         if user_id != None:
@@ -306,7 +306,7 @@ class InteractionDBInterface(InteractionBaseInterface):
         total = self.db.query(func.count(Interaction.id)).filter(Interaction.user_id == user_id, Interaction.is_deleted == False).scalar()
         interaction_list = self.db.query(Interaction).filter(Interaction.user_id == user_id, Interaction.is_deleted == False).limit(page_size).offset((page_num - 1) * page_size).all()
         data = []
-        for i, interaction in enumerate(interaction_list):
+        for interaction in interaction_list:
             d_ = InteractionBase.from_db(interaction).to_dict(exclude=["recorder_root_dir", "is_deleted"])
             parameter = [{**p.args} if isinstance(p.args, dict) else p.args for p in self.get_parameter(d_["interaction_id"])]
             d_["parameters"] = parameter
@@ -331,7 +331,7 @@ class InteractionDBInterface(InteractionBaseInterface):
         total = self.db.query(func.count(SharedInteraction.id)).filter(SharedInteraction.is_deleted == False).scalar()
         interaction_list = self.db.query(SharedInteraction).filter(SharedInteraction.is_deleted == False).order_by(SharedInteraction.star.desc()).limit(page_size).offset((page_num - 1) * page_size).all()
         data = []
-        for i, interaction in enumerate(interaction_list):
+        for interaction in interaction_list:
             d_ = SharedInteractionBase.from_db(interaction).to_dict(exclude=["record_dir", "is_deleted"])
             parameter = [{**p.args} if isinstance(p.args, dict) else p.args for p in self.get_parameter(d_["interaction_id"])]
             d_["parameters"] = parameter

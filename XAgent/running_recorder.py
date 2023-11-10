@@ -283,7 +283,7 @@ class RunningRecoder():
         Args:
             query (AutoGPTQuery): The query to register.
         """
-        with open(os.path.join(self.record_root_dir, f"query.json"), "w",encoding="utf-8",) as writer:
+        with open(os.path.join(self.record_root_dir, "query.json"), "w", encoding="utf-8") as writer:
             json.dump(query.to_json(), writer, indent=2, ensure_ascii=False)
 
     def get_query(self):
@@ -306,7 +306,7 @@ class RunningRecoder():
         Args:
             config (XAgentConfig): The configuration to register.
         """
-        with open(os.path.join(self.record_root_dir, f"config.yml"), "w",encoding="utf-8") as writer:
+        with open(os.path.join(self.record_root_dir, "config.yml"), "w", encoding="utf-8") as writer:
             writer.write(yaml.safe_dump(dict(config.to_dict(safe=True)), allow_unicode=True))
 
 
@@ -330,7 +330,7 @@ class RunningRecoder():
         Args:
             record_dir (str): The directory of the record.
         """
-        with open(os.path.join(self.record_root_dir, f"This-Is-A-Reload-Run.yml"), "w",encoding="utf-8") as writer:
+        with open(os.path.join(self.record_root_dir, "This-Is-A-Reload-Run.yml"), "w", encoding="utf-8") as writer:
             writer.write(yaml.safe_dump({
                 "load_record_dir": record_dir,
             }, allow_unicode=True))

@@ -115,7 +115,7 @@ class XAgentInteraction(metaclass=abc.ABCMeta):
             data (XAgentOutputData): The data to populate the cache with
         """
         self._cache = data
-        self.logger.info(f"init cache")
+        self.logger.info("init cache")
 
     def get_cache(self) -> dict:
         """
@@ -321,6 +321,6 @@ class XAgentInteraction(metaclass=abc.ABCMeta):
         Automatically close the interaction.
         """
         # self.io.close()
-        self.logger.info(f"close io connection")
+        self.logger.info("close io connection")
         self.db.update_interaction_status(self.base.interaction_id, status="finished",
                                    message="io connection closed", current_step=self.current_step)

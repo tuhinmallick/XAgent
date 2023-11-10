@@ -79,11 +79,7 @@ class Message:
             return False
         if a.content != b.content:
             return False
-        if a.type != b.type:
-            return False
-        if a.function_call != b.function_call:
-            return False
-        return True
+        return False if a.type != b.type else a.function_call == b.function_call
 
 @dataclass
 class ModelInfo:
@@ -185,7 +181,7 @@ class MessageHistory:
         Returns:
             None
         """
-        if function_call == None:
+        if function_call is None:
             message = Message(role, content, type)
         else:
             message = Message(role, content, type, function_call)

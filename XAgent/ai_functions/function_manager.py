@@ -71,7 +71,7 @@ class FunctionManager:
             return
         self.function_cfgs[function_schema['name']] = function_schema
         
-    def execute(self,function_name:str,return_generation_usage:bool=False,function_cfg:dict=None,**kwargs,)->Tuple[dict,Optional[dict]]:
+    def execute(self,function_name:str,return_generation_usage:bool=False,function_cfg:dict=None,**kwargs,) -> Tuple[dict,Optional[dict]]:
         """
         Executes a function by its name.
 
@@ -91,15 +91,15 @@ class FunctionManager:
             function_cfg = self.function_cfgs.get(function_name)
         else:
             raise KeyError(f'Configure for function {function_name} not found.')
-        
-        
+
+
         logger.typewriter_log(f'Executing AI Function: {function_name}', Fore.YELLOW)
 
         completions_kwargs:dict = function_cfg.get('completions_kwargs',CONFIG.default_completion_kwargs)
         function_prompt = str(function_cfg['function_prompt'])
         function_prompt = function_prompt.format(**kwargs)
         messages = [{'role':'user','content':function_prompt}]
-        
+
         match CONFIG.default_request_type:
             case 'openai':                
                 response = objgenerator.chatcompletion(
@@ -117,10 +117,8 @@ class FunctionManager:
                     **completions_kwargs
                 )
                 returns = json5.loads(response['choices'][0]['message']['content'])['arguments']
-        
-        if return_generation_usage:
-            return returns, response['usage']
-        return returns
+
+        return (returns, response['usage']) if return_generation_usage else returns
     
     def __getitem__(self,function_name,return_generation_usage=False,**kwargs):
         """

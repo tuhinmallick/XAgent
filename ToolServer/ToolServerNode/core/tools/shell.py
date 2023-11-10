@@ -19,7 +19,7 @@ async def read_exec_proc_display(exec_proc: asyncio.subprocess.Process):
     for pipe, name in zip([exec_proc.stderr,exec_proc.stdout], ['stderr','stdout']):
         ret = await async_read_pipe(pipe)
         if ret != b'':
-            display += f'\n{name}:\n'+ ret.decode()
+            display += f'\n{name}:\n{ret.decode()}'
     return display
 
 @toolwrapper()
@@ -72,10 +72,10 @@ async def shell_command_executor(command: str = '', run_async: bool = False, she
                 exec_proc.kill()
             display = await read_exec_proc_display(exec_proc)
             if display != "":
-                des += " But get some response:" + display
-                
+                des += f" But get some response:{display}"
+
             raise ToolExecutionError(des)
-            
+
         ALL_SHELLS.pop(shell_id)
 
         result = {
@@ -83,13 +83,12 @@ async def shell_command_executor(command: str = '', run_async: bool = False, she
             'display': ''
         }
         if ret[1] != b'':
-            result['display'] += f'\nstderr:\n'+ret[1].decode()
+            result['display'] += f'\nstderr:\n{ret[1].decode()}'
         if ret[0] != b'':
-            result['display'] = f'\nstdout:\n'+ret[0].decode()
-            
+            result['display'] = f'\nstdout:\n{ret[0].decode()}'
+
         if result['ReturnCode'] != 0 and not kill:
             raise ToolExecutionError(result)
-        return result
     else:
         if command[-1] != '\n':
             command += '\n'
@@ -106,4 +105,5 @@ async def shell_command_executor(command: str = '', run_async: bool = False, she
             result['status'] = 'shell thread has been killed'
         else:
             result['status'] = 'shell still running, no return code'
-        return result
+
+    return result

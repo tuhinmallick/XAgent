@@ -88,33 +88,33 @@ def toolwrapper(
     disabled_reason: Optional[str] = None,
     parent_tools_visible: bool = CONFIG['toolregister']['parent_tools_visible'],
     visible:bool = True,
-)->Union[Type,Callable[..., Any]]:
+) -> Union[Type,Callable[..., Any]]:
     """The tool decorator for class, used to create tool objects from ordinary class."""
 
-    def decorator(obj:object)->Union[Type,Callable[..., Any]]:
+    def decorator(obj:object) -> Union[Type,Callable[..., Any]]:
         if inspect.isclass(obj):
             cls = obj
             cls_name = name if name is not None else cls.__name__
             if not issubclass(cls,BaseEnv):
                 raise Exception(f'The class {cls} is not a subclass of BaseEnv!')
-            
+
             description = cls.__doc__ if cls.__doc__ is not None else ''
             if not visible:
                 description = 'Note: All tools of this env are invisible during all tools display, please check this env\'s defination to show all tools.\n' + description
-            
-            
+
+
             subtools_labels = {}
             if BaseEnv not in cls.__bases__:
                 direct_parents = [parent.__name__ for parent in cls.__bases__]
                 if not parent_tools_visible:
-                    description = f'Note: This env is subclass of {direct_parents}, and all tools of parent envs are inherited and not visible. You can try call parent tools or check this env\'s defination to show them.\n' + description
+                    description = f"Note: This env is subclass of {direct_parents}, and all tools of parent envs are inherited and not visible. You can try call parent tools or check this env\'s defination to show them.\n{description}"
                 else:
-                    description = f'Note: This env is subclass of {direct_parents}, and all tools of parent envs are inherited.\n' + description
+                    description = f'Note: This env is subclass of {direct_parents}, and all tools of parent envs are inherited.\n{description}'
                 for parent in cls.__bases__:
                     if hasattr(parent,'env_labels') and isinstance(parent.env_labels,EnvLabels):
                         subtools_labels.update(parent.env_labels.subtools_labels)
-            
-            cls_func_names = cls.__get_defined_func_name__()            
+
+            cls_func_names = cls.__get_defined_func_name__()
             for func_name in cls_func_names:
                 origin_func = getattr(cls,func_name)
                 tool_labels = generate_tool_labels(
@@ -125,7 +125,7 @@ def toolwrapper(
                     visible=visible)
                 if tool_labels is None:
                     continue
-                
+
                 # label classmethod, staticmethod and instance method
                 #check if the function is a classmethod
                 if inspect.ismethod(origin_func) and not inspect.isfunction(origin_func):
@@ -135,11 +135,11 @@ def toolwrapper(
                     tool_labels.func_type = 'instancemethod'
                 else:   
                     tool_labels.func_type = 'staticmethod'
-                
+
                 # tool_labels.dependent_cls = cls
                 origin_func.tool_labels = tool_labels
                 subtools_labels[tool_labels.name] = tool_labels
-            
+
 
             cls.env_labels = EnvLabels(
                 name=cls_name,
@@ -164,4 +164,5 @@ def toolwrapper(
             return func
         else:
             raise NotImplementedError(f'Object with type {type(obj)} not recognized!')
+
     return decorator

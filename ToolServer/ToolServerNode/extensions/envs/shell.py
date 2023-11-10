@@ -89,13 +89,12 @@ class ShellEnv(BaseEnv):
         """
         if not self.running:
             raise RuntimeError('Shell is not running!')
-        
+
         ready_fds,_,_ = select.select(self.output_fileno,[],[],0.01)
         if probe and len(ready_fds) == 0 :
             raise OutputNotReady('Output is not ready!',next_calling=get_func_name(self.read_stdout,self),arguments={'probe':True})
-        
-        error = read_pipe(self.running_proc.stderr)
-        if error:
+
+        if error := read_pipe(self.running_proc.stderr):
             return error
 
         return read_pipe(self.running_proc.stdout)
@@ -121,10 +120,10 @@ class ShellEnv(BaseEnv):
             content += "\n"
         self.running_proc.stdin.write(content)
         self.running_proc.stdin.flush()
-        
+
         ready_fds,_,_ = select.select(self.output_fileno,[],[],0.01)
         if len(ready_fds) == 0:
             raise OutputNotReady('Output is not ready!',next_calling=get_func_name(self.read_stdout,self),arguments={'probe':True})
-        
-        return 'Instant shell output: ' + self.read_stdout()
+
+        return f'Instant shell output: {self.read_stdout()}'
     

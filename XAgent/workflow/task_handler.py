@@ -75,9 +75,7 @@ class TaskHandler():
             None
         """
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= BEGIN QUERY SOVLING -=-=-=-=-=-=-=",
-            Fore.YELLOW,
-            "",
+            "-=-=-=-=-=-=-= BEGIN QUERY SOVLING -=-=-=-=-=-=-=", Fore.YELLOW, ""
         )
         self.query.log_self()
 
@@ -114,14 +112,13 @@ class TaskHandler():
                 pass
             if new is None:
                 return old
-            else:
-                goal = new.get("args", {}).get("goal", "")
-                if goal != "":
-                    old.data.goal = goal
-                return old
+            goal = new.get("args", {}).get("goal", "")
+            if goal != "":
+                old.data.goal = goal
+            return old
 
         self.now_dealing_task = self.plan_agent.latest_plan.children[0]
-        # workspace_hash_id = "" 
+        # workspace_hash_id = ""
         while self.now_dealing_task:
             task_id = self.now_dealing_task.get_subtask_id(to_str=True)
             recorder.change_now_task(task_id)
@@ -138,7 +135,7 @@ class TaskHandler():
 
             working_memory_agent.register_task(self.now_dealing_task)
 
-            
+
             refinement_result = {
                 "name": self.now_dealing_task.data.name,
                 "goal": self.now_dealing_task.data.goal,
@@ -158,7 +155,7 @@ class TaskHandler():
                     self.now_dealing_task)
             else:
                 logger.typewriter_log(
-                    f"subtask submitted as no need to refine the plan, continue",
+                    "subtask submitted as no need to refine the plan, continue",
                     Fore.BLUE,
                 )
 
@@ -267,7 +264,7 @@ class TaskHandler():
         """
 
         logger.typewriter_log(
-            f"-=-=-=-=-=-=-= POSTERIOR_PROCESS, working memory, summary, and reflection -=-=-=-=-=-=-=",
+            "-=-=-=-=-=-=-= POSTERIOR_PROCESS, working memory, summary, and reflection -=-=-=-=-=-=-=",
             Fore.BLUE,
         )
         posterior_data = get_posterior_knowledge(

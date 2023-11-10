@@ -97,8 +97,7 @@ class VectorDBInterface():
             response = requests.post(url, json=payload, headers=headers, timeout=10)
             try:
                 res = json.loads(response.text)
-                embedding = res['data'][0]['embedding']
-                return embedding
+                return res['data'][0]['embedding']
             except:
                 pass
 
@@ -134,8 +133,7 @@ class VectorDBInterface():
 
         """
         
-        embedding = self.generate_embedding(vec_sentence)
-        if embedding:
+        if embedding := self.generate_embedding(vec_sentence):
             try:
                 self.task_index.upsert(
                     [(str(self.vector_count),
@@ -167,8 +165,7 @@ class VectorDBInterface():
 
         """
         
-        embedding = self.generate_embedding(query_sentence)
-        if embedding:
+        if embedding := self.generate_embedding(query_sentence):
             try:
                 res = self.task_index.query(
                     embedding,

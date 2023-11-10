@@ -76,11 +76,10 @@ async def download_file(file_path:str=Body(...),file_type:str=Body(default='text
     work_directory = CONFIG['filesystem']['work_directory']
     if file_path.startswith(os.path.basename(work_directory)):
         file_path = file_path[len(os.path.basename(work_directory))+1:]
-    response = FileResponse(
-        path=os.path.join(work_directory,file_path),
+    return FileResponse(
+        path=os.path.join(work_directory, file_path),
         filename=os.path.basename(file_path),
-        )
-    return response
+    )
 
 @app.post('/download_workspace')
 async def download_workspace():
@@ -96,13 +95,12 @@ async def download_workspace():
         fpath= path.replace(work_directory,'')
         for file in files:
             zip.write(os.path.join(path,file),os.path.join(fpath,file))
-    
+
     zip.close()
-    response = FileResponse(
-        path=os.path.join(work_directory,'/tmp/workspace.zip'),
+    return FileResponse(
+        path=os.path.join(work_directory, '/tmp/workspace.zip'),
         filename='workspace.zip',
-        )
-    return response
+    )
 
 
 @app.post('/get_workspace_structure')
@@ -159,14 +157,17 @@ async def retrieving_tools(question:str=Body(...), top_k:int=Body(default=5)):
     except Exception as e:
         error_report =  traceback.format_exc()
         logger.error(error_report)
-        raise HTTPException(status_code=500, detail=f"Errorhappens when retrieving tools:\n{e}\n\n" + error_report)
-    
+        raise HTTPException(
+            status_code=500,
+            detail=f"Errorhappens when retrieving tools:\n{e}\n\n{error_report}",
+        )
+
     tool_register:ToolRegister = app.tool_register
-    tools_json = []
-    for tool_name in retrieved_tools:
-        if tool_name in tool_register.tools:
-            tools_json.append(tool_register.get_tool_dict(tool_name))
-    
+    tools_json = [
+        tool_register.get_tool_dict(tool_name)
+        for tool_name in retrieved_tools
+        if tool_name in tool_register.tools
+    ]
     return {
         "retrieved_tools":retrieved_tools,
         "tools_json":tools_json,
@@ -244,8 +245,11 @@ async def register_new_tool(tool_name:str=Body(...), code:str=Body(...)):
     except Exception as e:
         error_report =  traceback.format_exc()
         logger.error(error_report)
-        raise HTTPException(status_code=406, detail=f"Error happens when registering new tool:\n{e}\n\n" + error_report)
-    
+        raise HTTPException(
+            status_code=406,
+            detail=f"Error happens when registering new tool:\n{e}\n\n{error_report}",
+        )
+
     return tool_dict
 
 @app.post('/execute_tool')

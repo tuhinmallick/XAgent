@@ -52,11 +52,7 @@ class CommandLineInput(BaseInput):
         Returns:
             data (Any): The processed input data.
         """
-        if self.do_interrupt:
-            data = await self.interrupt(input_data)
-        else:
-            data = input_data
-        return data
+        return await self.interrupt(input_data) if self.do_interrupt else input_data
     
     async def get_each_input(self, key, value, res, timeout):
         """
@@ -77,14 +73,11 @@ class CommandLineInput(BaseInput):
             f""
         )
         self.logger.typewriter_log(
-            f"Now, you can modify the current field by entering some information, and then press 'Enter' to continue, if you want to keep the original input, please enter '-1' and then press 'Enter':",
-            Fore.GREEN
+            "Now, you can modify the current field by entering some information, and then press 'Enter' to continue, if you want to keep the original input, please enter '-1' and then press 'Enter':",
+            Fore.GREEN,
         )
         temp = inputimeout(prompt=f'You have {timeout} seconds to input:\n', timeout=timeout)
-        if temp == "-1":
-            return value
-        else:
-            return temp
+        return value if temp == "-1" else temp
         
     async def get_input(self, origin_data):
         """
@@ -140,10 +133,9 @@ class CommandLineInput(BaseInput):
             XAgentIOTimeoutError: If the input times out.
         """
         try:
-            data = await self.get_input(input_data)
-            return data
+            return await self.get_input(input_data)
         except TimeoutOccurred:
-            self.logger.error(f"Waiting timemout, close connection!")
+            self.logger.error("Waiting timemout, close connection!")
             raise XAgentIOTimeoutError("timeout!")
     
 

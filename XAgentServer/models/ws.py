@@ -76,10 +76,7 @@ class XAgentOutputData(metaclass=abc.ABCMeta):
         self.task_id = task_id
         self.subtasks = subtasks
         self.tool_recommendation = tool_recommendation
-        if node_id is None:
-            self.node_id = uuid.uuid4().hex
-        else:
-            self.node_id = node_id
+        self.node_id = uuid.uuid4().hex if node_id is None else node_id
 
     def to_dict(self):
         """

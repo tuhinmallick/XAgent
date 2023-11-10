@@ -91,10 +91,10 @@ class WebSocketConnectionManager(metaclass=Singleton):
         Returns:
             True if the websocket connection is active, False otherwise.
         """
-        for connection in self.active_connections:
-            if websocket_id in connection.keys():
-                return True
-        return False
+        return any(
+            websocket_id in connection.keys()
+            for connection in self.active_connections
+        )
     
     def get_connection(self, websocket_id: str) -> WebSocket:
         """
@@ -106,10 +106,14 @@ class WebSocketConnectionManager(metaclass=Singleton):
         Returns:
             A WebSocket instance representing the connection if exists, None otherwise.
         """
-        for connection in self.active_connections:
-            if websocket_id in connection.keys():
-                return connection[websocket_id]
-        return None
+        return next(
+            (
+                connection[websocket_id]
+                for connection in self.active_connections
+                if websocket_id in connection.keys()
+            ),
+            None,
+        )
     
 
     async def broadcast_pong(self):

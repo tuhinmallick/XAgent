@@ -53,11 +53,10 @@ class Plan():
             subtask_id_list (list): List of subtask IDs.
         """
         subtask_id_list = self.get_subtask_id_list()
-        if to_str:
-            subtask_id_list = [str(cont) for cont in subtask_id_list]
-            return ".".join(subtask_id_list)
-        else:
+        if not to_str:
             return subtask_id_list
+        subtask_id_list = [str(cont) for cont in subtask_id_list]
+        return ".".join(subtask_id_list)
 
     def get_subtask_id_list(self):
         """Gets the subtask ID list.
@@ -65,7 +64,7 @@ class Plan():
         Returns:
             Array of subtask IDs if father is not none else [1].
         """
-        if self.father == None:
+        if self.father is None:
             return [1]
         fahter_subtask_id = self.father.get_subtask_id()
         child_id = self.father.children.index(self) + 1
@@ -89,9 +88,7 @@ class Plan():
         Returns:
             Root Plan object.
         """
-        if self.father == None:
-            return self
-        return self.father.get_root()
+        return self if self.father is None else self.father.get_root()
 
     def get_depth(self):
         """Returns the depth of the Plan tree.
@@ -99,9 +96,7 @@ class Plan():
         Returns:
             Tree depth as an integer.
         """
-        if self.father == None:
-            return 1
-        return 1 + self.father.get_depth()
+        return 1 if self.father is None else 1 + self.father.get_depth()
 
     @classmethod
     def get_inorder_travel(cls, now_plan):
@@ -131,10 +126,14 @@ class Plan():
         root_plan = now_plan.get_root()
         all_plans = Plan.get_inorder_travel(root_plan)
         order_id = all_plans.index(now_plan)
-        for subtask in all_plans[order_id + 1:]:
-            if subtask.data.status == TaskStatusCode.TODO:
-                return subtask
-        return None
+        return next(
+            (
+                subtask
+                for subtask in all_plans[order_id + 1 :]
+                if subtask.data.status == TaskStatusCode.TODO
+            ),
+            None,
+        )
 
     @classmethod
     def get_remaining_subtask(cls, now_plan):

@@ -49,12 +49,17 @@ class PythonNotebook(BaseEnv):
 
             pattern = rf'{str_sign}(.*?){str_sign}'
             in_line_strs = re.findall(pattern, problematic_code, re.DOTALL)
-            replaced_in_line_strs = []
-            for in_line_str in in_line_strs:
-                replaced_in_line_strs.append(in_line_str.replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t'))
+            replaced_in_line_strs = [
+                in_line_str.replace('\n', '\\n')
+                .replace('\r', '\\r')
+                .replace('\t', '\\t')
+                for in_line_str in in_line_strs
+            ]
             for original_str, modified_str in zip(in_line_strs, replaced_in_line_strs):
-                fixed_code = problematic_code.replace(f'{str_sign}' + original_str + f'{str_sign}',
-                                                            f'{str_sign}' + modified_str + f'{str_sign}')
+                fixed_code = problematic_code.replace(
+                    f'{str_sign}{original_str}' + f'{str_sign}',
+                    f'{str_sign}{modified_str}' + f'{str_sign}',
+                )
 
         return fixed_code
 

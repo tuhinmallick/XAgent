@@ -47,16 +47,16 @@ def ada_retriever(doc_embeddings: list, id2tool:dict, question: str, top_k: int=
     headers = cfg['headers']
     payload = {'input':question}
     payload.update(cfg['payload'])
-    
+
     response = requests.post(url, json=payload, headers=headers)
     query_embedding = np.array(response.json()['data'][0]['embedding'])
 
     similarities = cosine_similarity([query_embedding], doc_embeddings)
 
     sorted_doc_indices = sorted(range(len(similarities[0])), key=lambda i: similarities[0][i], reverse=True)
-    retrieved_tools = list(map(lambda doc_id: id2tool[str(doc_id)],sorted_doc_indices[:top_k]))
-    
-    return retrieved_tools
+    return list(
+        map(lambda doc_id: id2tool[str(doc_id)], sorted_doc_indices[:top_k])
+    )
 
 def build_tool_embeddings(tools_json: list[dict]) -> tuple:
     """
@@ -89,59 +89,3 @@ def build_tool_embeddings(tools_json: list[dict]) -> tuple:
     #     logger.info('No tools change, use cached embeddings!')
     #     return doc_embedings, id2tool
     return doc_embedings, id2tool
-    
-    # update embeddings
-    logger.info('Tools change detected, updating embeddings...')
-    url = cfg['endpoint']
-    headers = cfg['headers']
-    
-    new_id2tool = { str(i):tool_json['name'] for i,tool_json in enumerate(tools_json) }
-    json.dump(new_id2tool, open(cfg['id2tool_file'], "w"), indent=4)
-
-    def get_embedding(tool_json:dict) -> list:
-        """
-        Get embedding for a certain tool.
-
-        Args:
-            tool_json: The dictionary containing tool data.
-
-        Returns:
-            A list of tool embeddings.
-        """
-        payload = {'input':json.dumps(tool_json)}
-        payload.update(cfg['payload'])
-        try:
-            response = requests.post(url, json=payload, headers=headers)
-            response.raise_for_status()
-        except Exception as e:
-            logger.error(f'Failed to get embedding for tool {tool_json["name"]}! Error: {e}')
-            return [-1.000001] * cfg['embedding_dim']
-        return response.json()['data'][0]['embedding']
-    
-    uncached_tools = list(filter(lambda tool_json: tool_json['name'] not in cached_tool_names, tools_json))
-    uncached_tools_name = list(map(lambda tool_json: tool_json['name'],uncached_tools))
-    uncached_doc_embedings = []
-    with ThreadPoolExecutor(16) as pool:
-        futures = [pool.submit(get_embedding, tool_json) for tool_json in uncached_tools]
-        
-        for future in tqdm.tqdm(futures,ncols=100):
-            uncached_doc_embedings.append(future.result())
-    
-    new_doc_embedings = []
-    for tool_json in tools_json:
-        if tool_json['name'] not in cached_tool_names:
-            new_doc_embedings.append(
-                uncached_doc_embedings[
-                    uncached_tools_name.index(tool_json['name'])
-                    ])
-        else:
-            for doc_id in id2tool.keys():
-                if id2tool[doc_id] == tool_json['name']:
-                    new_doc_embedings.append(doc_embedings[int(doc_id)])
-                    break
-
-    new_doc_embedings = np.array(new_doc_embedings)
-    np.save(cfg['embedding_file'], new_doc_embedings)
-
-    logger.info('Embeddings updated! New embeddings saved!')
-    return doc_embedings, new_id2tool

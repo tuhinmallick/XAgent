@@ -31,7 +31,7 @@ def generate_arg_doc(arg_name,arg_type,arg_desc,arg_default=None,arg_optional=No
     else:
         return f':param {arg_type} {arg_name}: {arg_desc}'
 
-def convert_rapidapi_desc_to_code(rapidapi_desc:dict)->list[dict]:
+def convert_rapidapi_desc_to_code(rapidapi_desc:dict) -> list[dict]:
     tool_desc = {
         'category':rapidapi_desc['category'],
         'tool_name':standardizing(rapidapi_desc['tool_name']),
@@ -40,35 +40,36 @@ def convert_rapidapi_desc_to_code(rapidapi_desc:dict)->list[dict]:
     for api_desc in rapidapi_desc['api_list']:
         api_name = standardizing(api_desc['name'])
         if api_name in ['from','class','return','false','true','id','and']:
-            api_name = 'is_'+ api_name
+            api_name = f'is_{api_name}'
         api_info = {'api_name':api_name}
         api_info.update(tool_desc)
-        
+
         api_uri = '_'.join(['rapi',tool_desc['tool_name'],api_name])
-        
-        
-        args_doc = []
-        
-        for param in api_desc['required_parameters']:
-            args_doc.append(generate_arg_doc(
+
+
+        args_doc = [
+            generate_arg_doc(
                 param['name'],
                 param['type'],
                 param['description'],
                 param['default'] if 'default' in param else None,
-                ))
-        
-        for param in api_desc['optional_parameters']:
-            args_doc.append(generate_arg_doc(
+            )
+            for param in api_desc['required_parameters']
+        ]
+        args_doc.extend(
+            generate_arg_doc(
                 param['name'],
                 param['type'],
                 param['description'],
                 param['default'] if 'default' in param else None,
-                True))
-        
+                True,
+            )
+            for param in api_desc['optional_parameters']
+        )
         args_doc = '\n    '.join(args_doc)
         code = f"""async def {api_uri}(self,*args,**kwargs):
     '''{rapidapi_desc['tool_description']}
-    {api_info['description'] if 'description' in api_info else ''}
+    {api_info.get('description', '')}
     
 
     {args_doc}
@@ -76,7 +77,7 @@ def convert_rapidapi_desc_to_code(rapidapi_desc:dict)->list[dict]:
     return await self._request_rapid_api('{api_uri}',kwargs)
         """
         api_info['code'] = code
-        
+
         api_infos[api_uri] = api_info
     return api_infos
 
@@ -87,19 +88,21 @@ def rapid_api_mapper(cls:Type):
         try:
             api_list = json.load(open(CONFIG['rapidapi']['api_raw_json']))
         except:
-            raise FileNotFoundError(f'Both api_infos_json and api_raw_json are not found! Failed to setup RapidAPIEnv!')
-        
+            raise FileNotFoundError(
+                'Both api_infos_json and api_raw_json are not found! Failed to setup RapidAPIEnv!'
+            )
+
         for rapidapi_desc in api_list:
             API_INFOS.update(convert_rapidapi_desc_to_code(rapidapi_desc))
-        
+
         json.dump(API_INFOS,open(CONFIG['rapidapi']['api_infos_json'],'w'),indent=4)
     else:
         API_INFOS.update(json.load(open(CONFIG['rapidapi']['api_infos_json'])))
-    
+
     for api_uri,api_info in API_INFOS.items():
         exec(api_info['code'])
         setattr(cls,api_uri,eval(api_uri))
-    
+
     return cls
 
 

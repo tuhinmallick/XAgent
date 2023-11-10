@@ -213,10 +213,10 @@ class DispatcherAgent(BaseAgent):
 
         additional_prompt = message['arguments']['additional_prompt']
 
-        prompt_messages = []
         if additional_prompt != "":
             example_user_prompt += "\n\nADDITIONAL NOTES\n" + additional_prompt
-        prompt_messages.append(Message(role="system", content=example_system_prompt))
-        prompt_messages.append(Message(role="user", content=example_user_prompt))
-
+        prompt_messages = [
+            Message(role="system", content=example_system_prompt),
+            Message(role="user", content=example_user_prompt),
+        ]
         return prompt_messages, tokens

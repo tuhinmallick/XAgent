@@ -78,13 +78,12 @@ class AutoReplayUtil(metaclass=abc.ABCMeta):
             history: Dictionary containing history of user interaction.
 
         """
-        init_data = {}
-        for key, value in history.items():
-            if key == "subtasks":
-                init_data[key] = [{**v, "inner": []} for v in value]
-            else:
-                init_data[key] = value
-
+        init_data = {
+            key: [{**v, "inner": []} for v in value]
+            if key == "subtasks"
+            else value
+            for key, value in history.items()
+        }
         await asyncio.sleep(random.randint(1, 5))
         await websocket.send_text(WebsocketResponseBody(status="start", data=init_data, message="success").to_text())
         await AutoReplayUtil.do_auto_replay(websocket, history)
@@ -103,11 +102,10 @@ class AutoReplayUtil(metaclass=abc.ABCMeta):
         cache_list = history.get("subtasks", [])
         item = cache_list.pop(0)
         while item is not None:
-            inner = item.get("inner", [])
-            if inner:
+            if inner := item.get("inner", []):
                 inner_props = inner.pop(0)
+                send = True
                 while inner_props is not None:
-                    send = True
                     tool_name = inner_props.get("using_tools", {}).get(
                         "tool_name", "") if isinstance(inner_props, dict) else ""
 
@@ -136,10 +134,7 @@ class AutoReplayUtil(metaclass=abc.ABCMeta):
                             "message": ""
                         }
                         await websocket.send_text(WebsocketResponseBody(**send_data).to_text())
-                    if inner:
-                        inner_props = inner.pop(0)
-                    else:
-                        inner_props = None
+                    inner_props = inner.pop(0) if inner else None
                     if inner_props is None:
                         await asyncio.sleep(random.randint(1, 5))
                         send_data = {
@@ -154,7 +149,7 @@ class AutoReplayUtil(metaclass=abc.ABCMeta):
                         }
                         await websocket.send_text(WebsocketResponseBody(**send_data).to_text())
                         await asyncio.sleep(5)
-            
+
             if cache_list:
                 await asyncio.sleep(random.randint(1, 5))
                 sub_send_data = {
@@ -163,7 +158,7 @@ class AutoReplayUtil(metaclass=abc.ABCMeta):
                     "status": "subtask",
                     "message": ""
                 }
-                
+
                 await websocket.send_text(WebsocketResponseBody(**sub_send_data).to_text())
                 item = cache_list.pop(0)
             else:

@@ -31,9 +31,11 @@ def is_wrapped_response(obj:dict) -> bool:
     Returns:
         bool: Returns True if the dictionary is a wrapped response, False otherwise.
     """
-    if 'type' in obj and obj['type'] in ['simple','composite','binary'] and 'data' in obj:
-        return True
-    return False
+    return (
+        'type' in obj
+        and obj['type'] in ['simple', 'composite', 'binary']
+        and 'data' in obj
+    )
 
 def wrap_tool_response(obj:Any) -> dict|list|str|int|float|bool:
     """
@@ -112,13 +114,11 @@ def wrap_tool_response(obj:Any) -> dict|list|str|int|float|bool:
         ret = obj
     elif isinstance(obj,dict):
         # check if already wrapped
-        if is_wrapped_response(obj):
-            ret = obj
-        else:
-            ret = {
-                'type': 'simple',
-                'data': obj
-            }
+        ret = (
+            obj
+            if is_wrapped_response(obj)
+            else {'type': 'simple', 'data': obj}
+        )
     else:
         logger.warning(f'Unknown type {type(obj)} in wrap_tool_response')
         ret = {

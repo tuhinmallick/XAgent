@@ -18,7 +18,7 @@ def email_content(user):
         >>> user = {'name': 'John Doe', 'email': 'john.doe@example.com', 'token': 'XYZ123', 'user_id': '12345'}
         >>> print(email_content(user))
     """
-    html_body = f"""
+    return f"""
 <body style="font-family: Arial, sans-serif;background-color: #f5f5f5;margin: 0; padding: 0;">
     <div style="background-color: #ffffff;margin: 0 auto;padding: 20px;border-radius: 10px;box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
         <h1 style="font-size: 28px;margin-bottom: 20px;">Hello {user['name']},</h1>
@@ -35,4 +35,3 @@ def email_content(user):
         <p style="margin-top: 20px;font-size: 14px;color: #999999;">XAgent Team</p>
     </div>
 </body>"""
-    return html_body

@@ -73,12 +73,11 @@ class XAgentConfig(dict):
         Returns:
             dict: Dictionary representation of the instance.
         """
-        if safe:
-            right_value = deepcopy(self)
-            right_value.pop("api_keys","")
-            return right_value
-        else:
+        if not safe:
             return self
+        right_value = deepcopy(self)
+        right_value.pop("api_keys","")
+        return right_value
 
     def reload(self, config_file='assets/config.yml'):
         """

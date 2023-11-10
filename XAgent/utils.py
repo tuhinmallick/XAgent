@@ -22,7 +22,7 @@ def get_token_nums(text:str)->int:
     """
     return len(encoding.encode(text))
 
-def clip_text(text:str,max_tokens:int=None,clip_end=False)->str|int:
+def clip_text(text:str,max_tokens:int=None,clip_end=False) -> str|int:
     """
     Truncate the given text to the specified number of tokens.
     If the original text and the clipped text are not of the same length, '`wrapped`' is added to the beginning or the end of the clipped text.
@@ -38,7 +38,7 @@ def clip_text(text:str,max_tokens:int=None,clip_end=False)->str|int:
     encoded = encoding.encode(text)
     decoded = encoding.decode(encoded[:max_tokens] if clip_end else encoded[-max_tokens:])
     if len(decoded) != len(text):
-        decoded = decoded + '`wrapped`' if clip_end else '`wrapped`' + decoded
+        decoded = f'{decoded}`wrapped`' if clip_end else f'`wrapped`{decoded}'
     return decoded, len(encoded)
 
 @unique
@@ -76,7 +76,7 @@ class ToolCallStatusCode(Enum):
     SUBMIT_AS_SUCCESS = 7
     SUBMIT_AS_FAILED = 8
     def __str__(self):
-        return self.__class__.__name__ + ": " + self.name
+        return f"{self.__class__.__name__}: {self.name}"
 
 @unique
 class PlanOperationStatusCode(Enum):
@@ -166,18 +166,18 @@ class TaskSaveItem:
         if "subtask name" in function_output_item.keys():
             self.name = function_output_item["subtask name"]
         else:
-            print(f"field subtask name not exist")
-            
+            print("field subtask name not exist")
+
         if "goal" in function_output_item.keys() and "goal" in function_output_item["goal"].keys():
             self.goal=function_output_item["goal"]["goal"]
         else:
-            print(f"field goal.goal not exist")
+            print("field goal.goal not exist")
 
         if "goal" in function_output_item.keys() and "criticism" in function_output_item["goal"].keys():
             self.prior_plan_criticism=function_output_item["goal"]["criticism"]
         else:
-            print(f"field goal.criticism not exist")
-        
+            print("field goal.criticism not exist")
+
         # if "handler" in function_output_item.keys():
         #     self.handler=function_output_item["handler"]
         # else:
@@ -228,11 +228,11 @@ class Singleton(abc.ABCMeta, type):
 
     _instances = {}
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Call method for the singleton metaclass."""
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
+        if self not in self._instances:
+            self._instances[self] = super(Singleton, self).__call__(*args, **kwargs)
+        return self._instances[self]
 
 class AbstractSingleton(abc.ABC, metaclass=Singleton):
     """

@@ -41,10 +41,8 @@ def make_message(now_node: ToolNode, task_handler, max_length, config):
         terminal_task_info = json.dumps(
             task_handler.now_dealing_task.to_json(), indent=2, ensure_ascii=False)
 
-    message_sequence = []
-
     now_subtask_prompt = f'''Now you will perform the following subtask:\n"""\n{terminal_task_info}\n"""\n'''
-    message_sequence.append(Message("user", now_subtask_prompt))
+    message_sequence = [Message("user", now_subtask_prompt)]
     action_process = now_node.process
 
     if config.enable_summary:
@@ -150,41 +148,38 @@ class ReACTChainSearch(BaseSearchMethod):
         Returns:
             The updated input list and the rewrite status.
         """
-        if not isinstance(new, dict):
-            pass
         if new is None:
             return old, False
-        else:
-            args = new.get("args", {})
-            assistant_thoughts_reasoning = None
-            assistant_thoughts_plan = None
-            assistant_thoughts_speak = None
-            assistant_thoughts_criticism = None
+        args = new.get("args", {})
+        assistant_thoughts_reasoning = None
+        assistant_thoughts_plan = None
+        assistant_thoughts_speak = None
+        assistant_thoughts_criticism = None
 
-            assistant_thoughts = old.get("thoughts", {})
-            assistant_thoughts = assistant_thoughts.get("properties", {})
-            assistant_thoughts_text = assistant_thoughts.get("thought")
-            if assistant_thoughts:
-                assistant_thoughts_reasoning = assistant_thoughts.get(
-                    "reasoning")
-                assistant_thoughts_plan = assistant_thoughts.get("plan")
-                assistant_thoughts_criticism = assistant_thoughts.get(
-                    "criticism")
+        assistant_thoughts = old.get("thoughts", {})
+        assistant_thoughts = assistant_thoughts.get("properties", {})
+        assistant_thoughts_text = assistant_thoughts.get("thought")
+        if assistant_thoughts:
+            assistant_thoughts_reasoning = assistant_thoughts.get(
+                "reasoning")
+            assistant_thoughts_plan = assistant_thoughts.get("plan")
+            assistant_thoughts_criticism = assistant_thoughts.get(
+                "criticism")
 
-                if "thoughts" in args.keys() and "thought" in assistant_thoughts.keys():
-                    old["thoughts"]["properties"]["thought"] = args.get(
-                        "thoughts", assistant_thoughts_text)
-                if "reasoning" in args.keys() and "reasoning" in assistant_thoughts.keys():
-                    old["thoughts"]["properties"]["reasoning"] = args.get(
-                        "reasoning", assistant_thoughts_reasoning)
-                if "plan" in args.keys() and "plan" in assistant_thoughts.keys():
-                    old["thoughts"]["properties"]["plan"] = args.get(
-                        "plan", assistant_thoughts_plan)
-                if "criticism" in args.keys() and "criticism" in assistant_thoughts.keys():
-                    old["thoughts"]["properties"]["criticism"] = args.get(
-                        "criticism", assistant_thoughts_criticism)
+            if "thoughts" in args.keys() and "thought" in assistant_thoughts.keys():
+                old["thoughts"]["properties"]["thought"] = args.get(
+                    "thoughts", assistant_thoughts_text)
+            if "reasoning" in args.keys() and "reasoning" in assistant_thoughts.keys():
+                old["thoughts"]["properties"]["reasoning"] = args.get(
+                    "reasoning", assistant_thoughts_reasoning)
+            if "plan" in args.keys() and "plan" in assistant_thoughts.keys():
+                old["thoughts"]["properties"]["plan"] = args.get(
+                    "plan", assistant_thoughts_plan)
+            if "criticism" in args.keys() and "criticism" in assistant_thoughts.keys():
+                old["thoughts"]["properties"]["criticism"] = args.get(
+                    "criticism", assistant_thoughts_criticism)
 
-            return old, True
+        return old, True
 
     async def generate_chain_async(self, config, agent: BaseAgent, task_handler, arguments,functions, task_id):
         """

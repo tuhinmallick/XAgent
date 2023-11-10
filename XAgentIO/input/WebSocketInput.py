@@ -70,15 +70,13 @@ class WebSocketInput(BaseInput):
                         await self.websocket.send_json({"type": "pong"})
                         continue
                     if data_type == "data":
-                        self.logger.info(f"Receiving data change request...")
+                        self.logger.info("Receiving data change request...")
                         self.logger.info(f"Received ：{data}")
                         wait = 0
                         return data
-                else:
-                    pass
             except asyncio.TimeoutError:
                 wait += 1
-        self.logger.error(f"Wait timeout, close.")
+        self.logger.error("Wait timeout, close.")
         self.websocket.send_text(WebsocketResponseBody(data=None, status="failed", message="Wait timeout, close.").to_text())
         raise XAgentIOWebSocketTimeoutError
 
@@ -90,8 +88,7 @@ class WebSocketInput(BaseInput):
             dict: The received data as a dictionary.
 
         """
-        data = await self.websocket.receive_json()
-        return data
+        return await self.websocket.receive_json()
 
     async def run(self, input):
         """Runs the interrupt if do_interrupt is set to True, otherwise returns the received data.
@@ -103,8 +100,4 @@ class WebSocketInput(BaseInput):
             dict: The received data as a dictionary.
 
         """
-        if self.do_interrupt:
-            data = await self.interrupt()
-            return data
-        else:
-            return input
+        return await self.interrupt() if self.do_interrupt else input

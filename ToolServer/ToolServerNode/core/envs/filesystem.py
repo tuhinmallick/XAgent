@@ -20,11 +20,8 @@ class FileSystemEnv(BaseEnv):
         if not os.path.exists(self.work_directory):
             os.mkdir(self.work_directory,mode=0o777)
         
-    def _check_ignorement(self,path:str)->bool:
-        for pattern in self.ignored_list:
-            if fnmatch.fnmatch(path,pattern):
-                return True
-        return False
+    def _check_ignorement(self,path:str) -> bool:
+        return any(fnmatch.fnmatch(path,pattern) for pattern in self.ignored_list)
     
     def _is_path_within_workspace(self,path:str)->bool:
         common_prefix = os.path.commonprefix([os.path.realpath(path),
@@ -94,7 +91,7 @@ class FileSystemEnv(BaseEnv):
 
         return full_repr
     
-    def read_from_file(self,filepath:str,line_number:int = 1)->str:
+    def read_from_file(self,filepath:str,line_number:int = 1) -> str:
         """Open and read the textual file content in the workspace, you will see the content of the target file.
         Don't use this if the give `filepath` is writen or modified before, the content in `filepath` should be already returned.
         
@@ -107,7 +104,7 @@ class FileSystemEnv(BaseEnv):
             full_path = os.path.join(self.work_directory, filepath)        
         else:
             full_path = filepath
-                
+
         if self._check_ignorement(full_path) or not os.path.isfile(full_path):
             raise FileNotFoundError(f"File {filepath} not found in workspace.")
         if not self._is_path_within_workspace(full_path):
@@ -118,29 +115,29 @@ class FileSystemEnv(BaseEnv):
         content = ''
         with open(full_path, 'r') as f:
             lines = f.readlines(int(1e5))
-            
+
         read_count = 0
-        if not (abs(line_number) - 1 < len(lines)):
+        if abs(line_number) - 1 >= len(lines):
             raise ValueError(f"Line number {line_number} is out of range.")
         index = line_number if line_number >= 0 else len(lines) + line_number
         if index == 0:
             index = 1
-            
+
         if line_number == 0:
             indexed_lines = lines
         elif line_number > 0:
             indexed_lines = lines[line_number-1:]
         else:
             indexed_lines = lines[line_number:]
-            
+
         for line in indexed_lines:
-            content += f'{index}'.rjust(5) + ': '
+            content += f"{f'{index}'.rjust(5)}: "
             content += line
             read_count += len(line)
             index += 1
         return content
 
-    def write_to_file(self, filepath:str,content:str,truncating:bool = False,line_number:int = None, overwrite:bool = False)->str:
+    def write_to_file(self, filepath:str,content:str,truncating:bool = False,line_number:int = None, overwrite:bool = False) -> str:
         """Write or modify the textual file lines based on `content` provided. 
         Return updated content of the file after modification so no further need to call `read_from_file` for this file. Create file if not exists.
         
@@ -167,24 +164,23 @@ class FileSystemEnv(BaseEnv):
             full_path = filepath
         if not self._is_path_within_workspace(full_path) or  self._check_ignorement(full_path):
             raise ValueError(f"File {filepath} is not within workspace.")
-        
+
         if not os.path.exists(full_path):
-            if line_number is None or line_number==0 or line_number == 1:
-                os.makedirs(os.path.split(full_path)[0],exist_ok=True)
-                open(full_path, 'w+').close()
-            else:
+            if line_number is not None and line_number != 0 and line_number != 1:
                 raise FileNotFoundError(f"File {filepath} not found in workspace.")
+            os.makedirs(os.path.split(full_path)[0],exist_ok=True)
+            open(full_path, 'w+').close()
         elif not os.path.isfile(full_path):
             raise ValueError(f"File {filepath} is not a file.")
-            
+
         # protential overflow
         if truncating:
             lines = []
         else:
             with open(full_path, 'r') as f:
                 lines = f.readlines()
-        
-        
+
+
         new_lines = content.splitlines(keepends=True)
         if line_number is None:
             lines.extend(new_lines)
@@ -199,10 +195,10 @@ class FileSystemEnv(BaseEnv):
         for idx, _ in enumerate(lines):
             if not lines[idx].endswith('\n'):
                 lines[idx] += '\n'
-                
+
         with open(full_path, 'w+') as f:
             f.writelines(lines)
-            
+
         return self.read_from_file(filepath)
         
 
